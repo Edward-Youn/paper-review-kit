@@ -1,0 +1,117 @@
+{
+  "primer": {
+    "title": "Voila-A를 읽기 위한 배경지식",
+    "caption": "VLM의 어텐션 구조부터 시선(gaze) 데이터와 Localized Narratives 마우스 트레이스까지, Voila-A가 \"사용자가 보는 곳\"을 모델에 주입하는 데 필요한 빌딩 블록을 정리한다.",
+    "fund_cards": [
+      {
+        "label": "Vision-Language Model",
+        "title": "VLM / MLLM — 이미지와 텍스트를 함께 다루는 모델",
+        "body": "<p><strong>직관.</strong> Vision-Language Model (이미지와 언어를 동시에 이해하는 모델)은 사진을 보고 질문에 답하거나(VQA), 캡션을 생성하는 모델이다. 최근에는 LLM을 backbone으로 얹은 multimodal large language model (MLLM)이 주류가 되었다.</p><p><strong>구조.</strong> 보통 <em>vision encoder</em> (예: CLIP ViT)가 이미지를 feature로 바꾸고, 이를 LLM이 읽을 수 있는 형태로 정렬(align)한다. 두 가지 흐름이 있다 — (1) vision feature를 텍스트 토큰 공간에 투영해 LLM 입력에 붙이거나, (2) frozen LLM 레이어 사이에 학습 가능한 interaction layer를 끼워 vision을 attend하게 한다. Voila-A는 후자(OpenFlamingo) 계열이다.</p><p><strong>논문 연결.</strong> 논문은 기존 VLM이 \"복잡한 장면에서 사용자가 어디를 보는지\"와 초점이 어긋난다(misalignment)는 점을 출발점으로 삼는다. 같은 이미지·질문이라도 사용자의 관심 대상이 다르면 답이 달라져야 하는데, 일반 VLM은 그 신호를 받을 통로 자체가 없다.</p>"
+      },
+      {
+        "label": "Attention & Cross-Attention",
+        "title": "어텐션과 크로스 어텐션 — Q·K·V로 정보를 모으는 연산",
+        "body": "<p><strong>직관.</strong> 어텐션(attention)은 \"질의(Query)가 여러 후보(Key) 중 어디에 얼마나 주목할지\" 가중치를 만들고, 그 가중치로 값(Value)을 가중합하는 연산이다. 크로스 어텐션(cross-attention)은 Query와 Key/Value가 서로 다른 modality에서 올 때를 말한다 — 예컨대 텍스트가 Query, 이미지가 Key/Value.</p><p><strong>구조.</strong> 표준식은 <em>Attn = Softmax(QKᵀ)V</em>. Q와 K의 내적이 클수록 그 위치의 V가 출력에 더 강하게 반영된다. VLM에서는 이 연산이 \"문장이 이미지의 어느 부분을 보고 답할지\"를 결정하는 핵심 통로가 된다.</p><p><strong>논문 연결.</strong> Voila-A의 아이디어는 바로 이 K(Key) 계산에 gaze 정보를 더해주는 것이다(식 4). 사용자가 응시한 영역의 feature가 Key에서 강조되면, 같은 Softmax 분포가 자연스럽게 그쪽으로 쏠린다. 즉 gaze가 어텐션의 \"정보 수집기(information aggregator)\" 역할을 한다.</p>"
+      },
+      {
+        "label": "Perceiver Resampler",
+        "title": "Perceiver Resampler — 레이턴트 병목으로 토큰 수를 줄이는 모듈",
+        "body": "<p><strong>직관.</strong> 이미지를 patch로 쪼개면 토큰이 수백~수천 개로 불어난다. 이를 그대로 LLM에 넣으면 비용이 폭발한다. Perceiver Resampler는 소수의 <em>latent query</em> (고정 개수의 학습 가능한 잠재 벡터)를 두고, 이들이 이미지 feature를 attend해 정해진 개수(예: 64개)의 요약 토큰으로 \"재추출(resample)\"한다.</p><p><strong>구조.</strong> 핵심은 latent L이 attention bottleneck (병목)을 만든다는 점이다. 모든 입력 정보는 이 좁은 latent 집합을 통과해야 하므로, 가장 중요한 정보만 압축되어 살아남는다. 출력 토큰 수는 입력 해상도와 무관하게 일정하다.</p><p><strong>논문 연결.</strong> Voila-A는 이 모듈을 \"Voila Perceiver Block\"으로 확장한다(식 3). latent가 이미지 feature를 요약할 때, gaze heatmap도 함께 attend하도록 K에 더해줘서 latent 병목을 통과하는 정보가 사용자의 시선 쪽으로 편향되게 만든다.</p>"
+      },
+      {
+        "label": "OpenFlamingo / Otter",
+        "title": "OpenFlamingo + Gated Cross-Attention — frozen LLM에 시각 정보를 끼우기",
+        "body": "<p><strong>직관.</strong> Flamingo 계열은 거대한 LLM을 <em>그대로 얼린 채(frozen)</em> 시각 능력을 붙이는 방식이다. LLM 본체를 다시 학습하지 않으므로 언어 능력은 보존되고, 추가된 소수 파라미터만 학습한다.</p><p><strong>구조.</strong> LLM 레이어 사이사이에 <em>gated cross-attention</em> 레이어를 삽입한다. \"gated\"는 tanh 게이트를 0에서 시작해 점진적으로 여는 장치로, 학습 초기에 시각 신호가 LLM의 기존 분포를 망가뜨리지 않게 한다. OpenFlamingo는 이를 오픈소스로 재현했고, Otter는 그 위에 instruction-following 데이터로 튜닝해 대화형 능력을 더했다.</p><p><strong>논문 연결.</strong> Voila-A는 Otter의 사전학습 가중치(MPT-7B LLM + CLIP ViT-L/14)에서 출발한다. 따라서 \"pretrained knowledge를 보존하면서 gaze를 주입\"한다는 목표는 Flamingo의 frozen + gated 철학을 그대로 물려받은 것이다.</p>"
+      },
+      {
+        "label": "Gaze & Saliency",
+        "title": "시선 추적과 saliency — 인간 주의(attention)의 대리 신호",
+        "body": "<p><strong>직관.</strong> 사람은 무언가를 묻거나 관심을 가질 때 그 대상에 시선(gaze)을 고정(fixation)한다. 시선은 \"지금 사용자가 무엇에 주목하는가\"를 가장 자연스럽게 드러내는 신호이며, AR/VR 기기의 gaze tracker로 손쉽게 수집된다.</p><p><strong>구조.</strong> 시선 데이터는 보통 화면 위의 fixation 좌표 시퀀스로 들어온다. 컴퓨터 비전에서는 이를 saliency map(돌출도 맵, 사람이 볼 법한 곳의 확률 분포)으로 모델링해왔다. fixation 점들은 노이즈가 많아 보통 Gaussian blur로 부드러운 2D heatmap으로 변환한다.</p><p><strong>논문 연결.</strong> Voila-A는 saliency처럼 \"모델이 예측한\" 주의 분포가 아니라, <em>실제 사용자의 gaze</em>를 입력으로 받아 모델을 그 초점에 맞춘다. bounding box나 point보다 gaze가 인간의 자연스러운 지시 방식에 가깝다는 것이 동기다.</p>"
+      },
+      {
+        "label": "Localized Narratives",
+        "title": "Localized Narratives — 마우스 트레이스로 grounding된 캡션",
+        "body": "<p><strong>직관.</strong> 시선 데이터는 비싸고 모으기 어렵다. 그래서 논문은 이미 대규모로 존재하는 <strong>마우스 트레이스(mouse trace)</strong>를 gaze의 대리(proxy)로 쓴다. 사람이 말로 사물을 설명하면서 동시에 마우스로 그 위치를 가리키는 행동이 시선 고정과 비슷하기 때문이다.</p><p><strong>구조.</strong> Localized Narratives(Pont-Tuset et al., 2020)는 849,000장 이미지에 대해, 캡션의 <em>각 단어와 정렬된</em> 마우스 트레이스를 단 데이터셋이다. 전문 annotator 156명이 작업했고 명사·동사의 의미 정확도가 98.0%에 이른다. 즉 \"어떤 단어를 말할 때 화면의 어디를 가리켰는가\"가 함께 기록돼 있다.</p><p><strong>논문 연결.</strong> Voila-A는 이 트레이스를 Gaussian blur로 heatmap화한 뒤(식 1), 연속적인 트레이스를 gaze fixation처럼 보이게 다운샘플링한다(식 2의 EMD로 최적 비율 ≈ 25 결정). 이렇게 gaze화된 트레이스를 GPT-4에 먹여 ~72k grounded QA(VOILA-COCO)를 자동 생성한다.</p>"
+      }
+    ]
+  },
+  "equations": [
+    {
+      "eq_id": "eq-gaussian",
+      "label": "식 (1)",
+      "tex": "H(x, y) = \\frac{1}{2\\pi\\sigma^2}\\, e^{-\\frac{x^2+y^2}{2\\sigma^2}}",
+      "where": "<ul><li><strong>H(x, y)</strong> — 위치 (x, y)에서의 heatmap 값 (해당 픽셀이 주목받은 정도)</li><li><strong>(x, y)</strong> — fixation 또는 trace 점을 기준으로 한 상대 좌표</li><li><strong>σ</strong> — Gaussian kernel의 표준편차. 클수록 한 점의 영향이 넓게 번진다</li></ul>",
+      "intuition": "<p>raw한 gaze fixation 점이나 마우스 트레이스 점은 들쭉날쭉하고 노이즈가 많다. 각 점에 2D Gaussian을 씌워 부드러운 heatmap으로 바꾸면, \"사용자가 대략 이 영역 근처를 봤다\"는 연속적인 주의 분포가 된다. Voila-A에서 이 heatmap이 곧 모델에 주입되는 gaze 신호 G′의 원재료다. σ가 노이즈 강건성과 위치 정밀도 사이의 trade-off를 조절한다.</p>"
+    },
+    {
+      "eq_id": "eq-emd",
+      "label": "식 (2)",
+      "tex": "\\mathrm{EMD}(P, Q) = \\frac{\\sum_{i=1}^{n} \\lvert F_i(P) - F_i(Q) \\rvert}{\\sum_{i=1}^{n} F_i(P)}",
+      "where": "<ul><li><strong>P, Q</strong> — 각각 gaze heatmap과 trace heatmap의 분포</li><li><strong>F_i(·)</strong> — i번째 bin까지의 누적분포함수(CDF) 값</li><li><strong>n</strong> — heatmap을 나눈 bin의 개수</li><li><strong>EMD</strong> — Earth Mover's Distance, 한 분포를 다른 분포로 옮기는 데 드는 \"흙 옮기기\" 비용</li></ul>",
+      "intuition": "<p>마우스 트레이스는 gaze fixation보다 훨씬 연속적이라 그대로 쓰면 gaze와 분포가 다르다. 논문은 트레이스를 sampling rate 1~40으로 다운샘플링하면서, 각 비율에서 만든 trace heatmap과 실제 gaze heatmap 사이의 EMD를 측정한다. EMD가 가장 작아지는(분포가 가장 닮는) 지점이 sampling rate ≈ 25에서 local minimum으로 나타났고(Figure 2), 이 비율을 골라 트레이스를 통계적으로 gaze에 가장 가깝게 만든다. 즉 EMD는 \"트레이스를 얼마나 솎아내야 gaze처럼 보이는가\"를 정량적으로 정하는 자(尺)다.</p>"
+    },
+    {
+      "eq_id": "eq-voila-block",
+      "label": "식 (3)",
+      "tex": "\\mathrm{VoilaPerceiverBlock}(x, L, G) = \\mathrm{LN}\\big(L + \\mathrm{FF}(L + \\mathrm{Attn}(x, L, G))\\big)",
+      "where": "<ul><li><strong>x</strong> — vision encoder가 뽑은 이미지 feature</li><li><strong>L</strong> — latent feature (Perceiver의 소수 잠재 query, 병목 역할)</li><li><strong>G</strong> — linear 레이어로 인코딩된 gaze heatmap patch (식 6의 출력)</li><li><strong>Attn(·)</strong> — gaze를 주입한 어텐션 (식 4)</li><li><strong>FF(·)</strong> — LayerNorm → Linear → GELU → Linear 순의 feed-forward</li><li><strong>LN</strong> — Layer Normalization, <strong>+</strong> — residual connection</li></ul>",
+      "intuition": "<p>Voila-A의 심장이다. 원래 Perceiver block과 골격(어텐션 → residual → FF → residual → LN)은 똑같이 두고, 어텐션 함수 안으로만 gaze G를 슬쩍 끼워 넣는다. 이렇게 하면 사전학습된 resampler의 구조·분포는 거의 그대로 보존되면서, latent L이 이미지를 요약할 때 사용자가 본 영역으로 살짝 기울게 된다. \"gaze는 분포를 망가뜨리는 새 모듈이 아니라 기존 어텐션에 정보를 모아주는 보조 신호\"라는 설계 철학이 식 구조에 그대로 드러난다.</p>"
+    },
+    {
+      "eq_id": "eq-voila-attn",
+      "label": "식 (4)",
+      "tex": "\\begin{aligned} Q &= \\mathrm{Linear}(L), \\\\ K &= \\mathrm{Linear}(x \\oplus L) + \\mathrm{Linear}(G \\oplus P), \\\\ V &= \\mathrm{Linear}(x \\oplus L), \\\\ \\mathrm{Attn}(x, L, G) &= \\mathrm{Softmax}(QK^{\\top})V \\end{aligned}",
+      "where": "<ul><li><strong>Q, K, V</strong> — 어텐션의 query / key / value</li><li><strong>x ⊕ L</strong> — 이미지 feature와 latent를 feature 차원으로 concatenation</li><li><strong>G ⊕ P</strong> — gaze 인코딩 G와 zero padding P(L과 같은 shape)를 concatenation</li><li><strong>⊕</strong> — feature 차원 concatenation, <strong>Linear(·)</strong> — 선형 변환</li><li><strong>P</strong> — L과 같은 모양의 zero padding (K의 차원을 맞추기 위한 자리채움)</li></ul>",
+      "intuition": "<p>gaze가 정확히 <em>어디로</em> 들어가는지를 보여주는 식이다. Q와 V는 평범하게 latent·이미지로만 만들지만, <strong>K에만 gaze 항 Linear(G ⊕ P)가 더해진다</strong>. Key가 \"각 위치가 query에 얼마나 주목받을 자격이 있는가\"를 정하므로, gaze로 강조된 영역의 Key가 커지면 Softmax 가중치가 자연스럽게 그쪽으로 쏠린다. P를 zero padding으로 둔 것은 gaze가 이미지 feature 쪽 차원에만 영향을 주고 latent 쪽은 건드리지 않게 하기 위함이다. 그래서 gaze는 분포를 새로 만드는 게 아니라 \"information aggregator\"로서 기존 어텐션 위에 얹힌다.</p>"
+    },
+    {
+      "eq_id": "eq-gaze-encode",
+      "label": "식 (6)",
+      "tex": "G = \\mathrm{LN}(\\mathrm{Linear}(G'))",
+      "where": "<ul><li><strong>G′</strong> — patch로 분할된 raw gaze heatmap (식 1로 만든 2D heatmap을 patch 단위로 자른 것)</li><li><strong>Linear(·)</strong> — patch를 모델 feature 차원으로 올리는 선형 투영</li><li><strong>LN</strong> — Layer Normalization</li><li><strong>G</strong> — 식 3·4에서 어텐션에 주입되는 최종 gaze 인코딩</li></ul>",
+      "intuition": "<p>gaze 신호를 어텐션에 쓰기 전 \"입장권\"을 만드는 단계다. 2D heatmap을 이미지 patch와 똑같은 격자로 잘라 각 patch를 한 토큰으로 보고, 단순한 Linear + LayerNorm만 거쳐 모델의 feature 공간에 올린다. 의도적으로 <em>가볍게</em> 설계한 점이 핵심이다 — 1단계 학습에서 바로 이 gaze linear 레이어만 먼저 풀어(unfreeze) 학습시키고, 무거운 perceiver·cross-attention은 2단계로 미룬다. 새로 추가된 gaze 부품이 사전학습 분포에 먼저 적응하게 해서 catastrophic forgetting(파국적 망각)을 피하는, gradual unfreezing 전략의 출발점이다.</p>"
+    }
+  ],
+  "concept_cards": [
+    {
+      "label": "Gaze Proxy",
+      "title": "마우스 트레이스를 gaze의 대리로 사용하기",
+      "body": "<p><strong>직관.</strong> gaze 데이터를 대규모로 모으려면 전용 기기와 사람이 필요해 비싸다. 논문은 \"사람이 사물을 설명하며 마우스로 가리키는 동작\"이 \"질문하며 그 대상을 응시하는 동작\"과 닮았다는 관찰에서, 이미 849k장 규모로 존재하는 Localized Narratives 마우스 트레이스를 gaze proxy로 재활용한다.</p><p><strong>구조.</strong> 다만 둘이 완전히 같지는 않다 — 트레이스는 fixation보다 연속적이고, annotator가 객체 주위를 빙 두르거나 설명 전후로 마우스를 미리/늦게 움직여 box 밖 노이즈 점이 생긴다. 그래서 Gaussian blur(식 1)로 heatmap화하고 sampling rate 25로 다운샘플링(식 2)해 분포를 gaze에 맞춘다.</p><p><strong>논문 연결.</strong> 이 proxy 덕분에 별도의 대규모 gaze 수집 없이도 ~72k grounded QA(VOILA-COCO)를 만들 수 있었고, 방법의 확장성(scalability)이 확보됐다. 실제 gaze는 별도로 100건만 수집해 VOILA-GAZE 테스트셋으로 검증에 쓴다.</p>"
+    },
+    {
+      "label": "Heatmap vs Tokens",
+      "title": "gaze heatmap이 discrete token·bbox보다 나은 이유",
+      "body": "<p><strong>직관.</strong> \"사용자가 어디를 보는가\"를 모델에 알려주는 방법은 여럿이다 — gaze 좌표를 discrete position token으로 바꾸기, trace의 bounding box를 이미지 patch로 붙이기, box 좌표를 discrete token으로 만들기, 그리고 Voila-A처럼 연속적인 heatmap으로 주기.</p><p><strong>구조.</strong> heatmap은 \"부드러운 확률 분포\"라 어텐션의 Softmax와 자연스럽게 결합된다(식 4의 K에 더해짐). 반면 discrete token은 LLM의 토큰 공간을 어지럽히고, bounding box는 사람의 시선처럼 한 점에 집중되지 못하고 영역이 너무 거칠다(coarse).</p><p><strong>논문 연결.</strong> Table 3 ablation에서 heatmap 방식(Voila)이 Otter-base 대비 winning rate 0.41 / reward −0.79로 가장 좋았고, discrete position token(0.19), box-as-patch(0.36), box-as-token(0.21)은 모두 뒤처졌다. 일부는 base보다도 나빠(reward −2.44) gaze를 잘못 주입하면 오히려 해가 됨을 보였다.</p>"
+    },
+    {
+      "label": "Information Aggregator",
+      "title": "어텐션 속 gaze의 역할 — 분포를 깨지 않는 정보 수집기",
+      "body": "<p><strong>직관.</strong> gaze를 어떻게 넣느냐의 설계 원칙이 \"gaze는 어텐션 과정에서 <em>information aggregator</em>로 작동하되, 원래 학습된 분포를 망가뜨리지 않는다\"이다. 즉 gaze는 새 능력을 만드는 게 아니라 기존 능력을 사용자 초점 쪽으로 모아주는 보조 신호다.</p><p><strong>구조.</strong> 이를 위해 Q·V는 건드리지 않고 K에만 gaze 항을 더한다(식 4). Key가 커진 위치로 Softmax 가중치가 쏠릴 뿐, 어텐션의 수학적 형태 자체는 그대로다. zero padding P로 gaze가 latent 차원을 침범하지 않게 한 것도 같은 맥락이다.</p><p><strong>논문 연결.</strong> 이 \"최소 침습\" 설계 덕분에 frozen 사전학습 가중치의 지식을 보존하면서 gaze 정렬을 얻는다. coreference query(대명사 질문)처럼 텍스트만으로는 모호한 경우, gaze가 어텐션을 옳은 대상으로 모아줘 성능이 유지된다(Table 2).</p>"
+    },
+    {
+      "label": "Gradual Unfreezing",
+      "title": "Catastrophic forgetting과 2단계 점진적 unfreezing",
+      "body": "<p><strong>직관.</strong> Catastrophic forgetting(파국적 망각)은 새 데이터로 미세조정할 때 모델이 이전에 잘하던 것을 잊어버리는 현상이다. 새로 붙인 gaze 부품과 거대한 사전학습 본체를 한꺼번에 풀어 학습하면, 무작위로 초기화된 gaze 신호가 잘 정렬된 기존 분포를 망가뜨릴 위험이 있다.</p><p><strong>구조.</strong> Voila-A는 2단계로 점진 해동한다 — <strong>1단계</strong>: gaze 입력에 직접 연결된 linear 레이어(식 6)만 1 epoch 학습, vision/language encoder는 frozen. <strong>2단계</strong>: 그 다음 Perceiver resampler 전체 + LLM에 끼운 cross-attention + 입출력 embedding을 추가 1 epoch 학습. 총 학습 가능 파라미터는 약 1.3B.</p><p><strong>논문 연결.</strong> Table 4 ablation에서 이 순차 방식(0.41 / −0.79)이 한꺼번에 풀기(0.25)나 LoRA(0.23)보다 좋았다. 가설은 \"새 gaze 부품이 사전학습 분포에 먼저 적응해야 하고, 이 적응이 망각을 완화한다\"는 것이다.</p>"
+    },
+    {
+      "label": "GPT-4 Ranking & Reward",
+      "title": "GPT-4 Ranking 평가와 reward model, 그리고 ordering bias",
+      "body": "<p><strong>직관.</strong> gaze-directed 답변의 품질은 정답이 하나로 떨어지지 않아 단순 정확도로 재기 어렵다. 그래서 논문은 두 가지 보완적 자동 지표를 쓴다 — GPT-4 Ranking(두 모델 답을 1:1 비교)과 reward model 점수(인간 선호를 학습한 별도 모델).</p><p><strong>구조.</strong> GPT-4 Ranking은 문법·의미·유창성을 보고 어느 답이 ground truth에 더 부합하는지 판정한다. 문제는 GPT-4에 <em>sequence ordering bias</em>(먼저 제시된 답을 선호하는 편향)가 있다는 점. 이를 줄이려고 두 모델의 제시 순서를 뒤집은 dual-setting으로 양방향 평가한다. reward model(OpenAssistant DeBERTa 계열)은 GPT-4 자동 주석이 만든 system bias를 견제하는 인간 선호 축으로 함께 쓴다.</p><p><strong>논문 연결.</strong> 데이터셋 자체가 GPT-4로 자동 생성됐기 때문에, 평가까지 GPT-4 한 축에만 의존하면 편향이 순환한다. reward score는 이 순환을 깨는 안전장치이며, 데이터 필터링(낮은 reward 답 제거)에도 동일하게 쓰였다.</p>"
+    },
+    {
+      "label": "Coreference Query",
+      "title": "Coreference / implicit query — 대명사로 가리키는 모호한 질문",
+      "body": "<p><strong>직관.</strong> 사람은 일상에서 \"이거 어떻게 까?\", \"저게 더 나아?\"처럼 대명사로 대상을 가리키는 coreference query(지시 대상이 문장 밖에 있는 질문)를 자주 쓴다. 텍스트만 보면 \"이거\"가 무엇인지 알 수 없다 — 사용자가 보고 있는 대상을 함께 알아야 답할 수 있다.</p><p><strong>구조.</strong> direct query(\"케이크 색이 뭐야?\")는 대상이 문장에 명시돼 있어 일반 VLM도 잘 푼다. base 모델 OpenFlamingo가 direct query로 사전학습됐기 때문이다. 반면 coreference/implicit query는 spatial guidance 없이는 모델이 가장 두드러진(salient) 객체로 답을 떠넘기기 쉽다.</p><p><strong>논문 연결.</strong> Table 2에서 Otter는 coreference query에서 크게 떨어지지만, gaze를 가이드로 받은 Voila는 강건하게 유지된다. in-context QA 예시를 앞에 붙이면 direct(0.77)·coreference(0.46) 모두 더 향상된다. 실제 multi-turn 대화는 대부분 coreference라서 이 능력이 실용성의 핵심이다.</p>"
+    },
+    {
+      "label": "VOILA-COCO / VOILA-GAZE",
+      "title": "두 벤치마크 — 자동 생성 학습셋과 실제 gaze 테스트셋",
+      "body": "<p><strong>직관.</strong> 논문은 성격이 다른 두 데이터셋을 만든다 — 규모를 위한 자동 생성 데이터(VOILA-COCO)와, 실제 검증을 위한 진짜 gaze 데이터(VOILA-GAZE).</p><p><strong>구조.</strong> <strong>VOILA-COCO</strong>는 LN-COCO 마우스 트레이스 + GPT-4 자동 주석으로 만든 grounded QA로, training 20k 이미지 / 70k 질문(raw 대비 생존율 93.5%), validation·test도 포함한다. <strong>VOILA-GAZE</strong>는 Pupil Labs Invisible 안경으로 16명이 마트·가정 두 시나리오에서 수집한 <em>진짜</em> gaze 100건으로, 생존율이 22.2%에 불과할 만큼 까다로운 실생활 벤치마크다.</p><p><strong>논문 연결.</strong> COCO 이미지로 학습한 모델이 분포가 전혀 다른 실제 gaze 장면(VOILA-GAZE)에서도 Otter·Kosmos-2를 앞선다는 점(Figure 6)이, 마우스 트레이스 proxy로 학습해도 진짜 gaze로 일반화됨을 보이는 핵심 증거다.</p>"
+    },
+    {
+      "label": "[fixation] Token",
+      "title": "[fixation] 토큰 — LLM에게 \"지금 gaze를 보라\"고 알리는 신호",
+      "body": "<p><strong>직관.</strong> gaze heatmap을 어텐션에 주입하는 것과 별개로, language model 쪽에서도 \"이 질문에는 시선 정보가 딸려 있다\"는 것을 알아야 한다. Voila-A는 이를 위해 입력 시퀀스에 특수 토큰 [fixation]을 새로 도입한다.</p><p><strong>구조.</strong> 학습 데이터 포맷은 <code>&lt;context&gt; [image] User:[fixation]&lt;instruction&gt; GPT:[answers] &lt;answer&gt;.[endofchunk]</code> 형태다. [image]·[endofchunk]는 OpenFlamingo, [answer]는 Otter에서 온 토큰이고, [fixation]이 Voila-A의 추가분이다. [answer] 뒤 토큰만 loss 대상(prediction objective)으로 두고 나머지는 마스킹하며, 전체는 cross-entropy loss로 학습한다.</p><p><strong>논문 연결.</strong> [fixation] 토큰은 instruction 앞에 놓여 LLM이 gaze 정보를 활용하도록 명시적으로 유도하는 스위치 역할을 한다. chatbot 형식과 결합해 instruction-following과 대화 일반화 능력을 함께 끌어올린다.</p>"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "short_name": "Voila-A",
+    "title": "Voila-A: Aligning Vision-Language Models with User's Gaze Attention",
+    "venue": "arXiv (Work in Progress)",
+    "year": "2023",
+    "authors": "Kun Yan, Lei Ji, Zeyu Wang, Yuntao Wang, Nan Duan, Shuai Ma",
+    "affiliation": "Beihang University · Microsoft Research Asia · Tsinghua University",
+    "source_pdf": "arXiv:2401.09454"
+  },
+  "asset_layout": [
+    ["fig_1",   "p8",  "figure"],
+    ["fig_2",   "p16", "figure"],
+    ["fig_3",   "p18", "figure"],
+    ["table_1", "p19", "table"],
+    ["fig_4",   "p23", "figure"],
+    ["fig_5",   "p29", "figure"],
+    ["fig_6",   "p30", "figure"],
+    ["table_2", "p31", "table"],
+    ["table_3", "p32", "table"],
+    ["table_4", "p33", "table"],
+    ["fig_7",   "p34", "figure"],
+    ["fig_8",   "p34", "figure"]
+  ],
+  "wide_assets": ["fig_1", "fig_3", "fig_4", "fig_5", "fig_6", "fig_7", "fig_8", "table_1", "table_2", "table_3", "table_4"],
+  "captions": {
+    "fig_1": "Figure 1: AR and VR scenarios usually involve complex scenes with multiple objects. Users may interested in only one specific object and gaze is the most natural way to interact with the device.",
+    "fig_2": "Figure 2: EMD between the mean heatmaps of 1k gaze and trace samples with varying sampling rates.",
+    "fig_3": "Figure 3: Automatic Data Annotation Pipeline.",
+    "fig_4": "Figure 4: Overall Model Structure.",
+    "fig_5": "Figure 5: GPT-RANKING ON VOILA-COCO-Testset.",
+    "fig_6": "Figure 6: GPT-RANKING ON VOILA-GAZE.",
+    "fig_7": "Figure 7: Different Scenarios in the Future.",
+    "fig_8": "Figure 8: Qualitative Case Study. Top: We show successful predictions of all models. Middle: We demonstrate the problems of baseline models compared with VOILA including coreference queries, gaze grounding methods, etc. Bottom: We display hard challenges for all models.",
+    "table_1": "Table 1: Statistics of Voila-COCO and Voila-Gaze Datasets.",
+    "table_2": "Table 2: Ablation on query types.",
+    "table_3": "Table 3: Ablation on Methods of Integrating Gaze Data.",
+    "table_4": "Table 4: Ablation on Training Procedure."
+  }
+}

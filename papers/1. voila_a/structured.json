@@ -1,0 +1,1069 @@
+{
+  "title": "Voila-A: Aligning Vision-Language Models with User's Gaze Attention",
+  "source_pdf": "rawpaper/VOILA-A_ALIGNING_VISION-LANGUAGE_MODELS_WITH_USER_S_GAZE_ATTENTION.pdf",
+  "sections": [
+    {
+      "section_id": "s1",
+      "title": "Abstract",
+      "paragraphs": [
+        {
+          "paragraph_id": "p1",
+          "sentences": [
+            {
+              "sentence_id": "p1_s1",
+              "text": "In recent years, the integration of vision and language understanding has led to significant advancements in artificial intelligence, particularly through Vision-Language Models (VLMs)."
+            },
+            {
+              "sentence_id": "p1_s2",
+              "text": "However, existing VLMs face challenges in handling real-world applications with complex scenes and multiple objects, as well as aligning their focus with the diverse attention patterns of human users."
+            },
+            {
+              "sentence_id": "p1_s3",
+              "text": "In this paper, we introduce gaze information, feasibly collected by AR or VR devices, as a proxy for human attention to guide VLMs and propose a novel approach, Voila-A, for gaze alignment to enhance the interpretability and effectiveness of these models in real-world applications."
+            },
+            {
+              "sentence_id": "p1_s4",
+              "text": "First, we collect hundreds of minutes of gaze data to demonstrate that we can mimic human gaze modalities using localized narratives."
+            },
+            {
+              "sentence_id": "p1_s5",
+              "text": "We then design an automatic data annotation pipeline utilizing GPT-4 to generate the VOILA-COCO dataset."
+            },
+            {
+              "sentence_id": "p1_s6",
+              "text": "Additionally, we innovate the Voila Perceiver modules to integrate gaze information into VLMs while preserving their pretrained knowledge."
+            },
+            {
+              "sentence_id": "p1_s7",
+              "text": "We evaluate Voila-A using a hold-out validation set and a newly collected VOILA-GAZE Testset, which features real-life scenarios captured with a gaze-tracking device."
+            },
+            {
+              "sentence_id": "p1_s8",
+              "text": "Our experimental results demonstrate that Voila-A significantly outperforms several baseline models."
+            },
+            {
+              "sentence_id": "p1_s9",
+              "text": "By aligning model attention with human gaze patterns, Voila-A paves the way for more intuitive, user-centric VLMs and fosters engaging human-AI interaction across a wide range of applications."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "s2",
+      "title": "1  Introduction",
+      "paragraphs": [
+        {
+          "paragraph_id": "p2",
+          "sentences": [
+            {
+              "sentence_id": "p2_s1",
+              "text": "The integration of vision and language understanding has witnessed significant advancements in recent years, particularly through the development of Vision-Language Models (VLMs)."
+            },
+            {
+              "sentence_id": "p2_s2",
+              "text": "These models have demonstrated remarkable performance in various tasks, such as visual question answering, image captioning, and visual storytelling, among others."
+            },
+            {
+              "sentence_id": "p2_s3",
+              "text": "However, despite their impressive performance, current VLM systems often lack the ability to align their focus with that of a human user, which can lead to suboptimal performance and reduced user satisfaction."
+            },
+            {
+              "sentence_id": "p2_s4",
+              "text": "To address this challenge, we introduce Voila-A, a novel approach for aligning VLMs with a user's gaze attention, aiming to improve the interpretability and effectiveness of these models in real-world applications."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p3",
+          "sentences": [
+            {
+              "sentence_id": "p3_s1",
+              "text": "Recent research in multimodal vision and language tasks has leveraged multimodal large language models (MLLMs) to achieve superior performance (Liu et al., 2023; Li et al., 2023b; Alayrac et al., 2022)."
+            },
+            {
+              "sentence_id": "p3_s2",
+              "text": "These models primarily focus on learning alignment between vision input and text tokens for LLMs or designing learnable interaction layers to attend the vision input to the frozen LLM layers."
+            },
+            {
+              "sentence_id": "p3_s3",
+              "text": "The importance of aligning AI with human attention has been highlighted in previous research, which demonstrates that incorporating visual attention can lead to improved user experience (Land, 2006; Tanriverdi & Jacob, 2000; Piening et al., 2021)."
+            },
+            {
+              "sentence_id": "p3_s4",
+              "text": "Additionally, there has been growing interest in grounded MLLMs, which investigate the fine-grain grounding capability between region-text pairs instead of image-text pairs and further conduct dense regional prediction tasks (Zhong et al., 2022; Jin et al., 2023; Zhou et al., 2023)."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p4",
+          "sentences": [
+            {
+              "sentence_id": "p4_s1",
+              "text": "Visual regions can be represented in various ways, such as bounding boxes (Zhu et al., 2016; Liu et al., 2017), points (Mani et al., 2020), or traces (Pont-Tuset et al., 2020; Yan et al., 2021)."
+            },
+            {
+              "sentence_id": "p4_s2",
+              "text": "To input regional information into models, several methods have been proposed, including concatenating cropped image patches with the original text/image as model input (Zhang et al., 2023b; Bracha et al., 2023), using masks or Gaussian maps to emphasize areas of user interest Lin et al. (2020; 2022), or encoding points, boxes, or traces into positional encodings (Kirillov et al., 2023; Voigtlaender et al., 2023)."
+            },
+            {
+              "sentence_id": "p4_s3",
+              "text": "While bounding boxes and points have been widely used in VLMs, gaze offers a more natural way to represent visual regions and are most similar to human gaze."
+            },
+            {
+              "sentence_id": "p4_s4",
+              "text": "In this work, we propose using gaze as a more convenient and interactive way of representing visual regions, especially in augmented reality and virtual reality scenarios."
+            },
+            {
+              "sentence_id": "p4_s5",
+              "text": "Specifically for gaze, previous works have proposed gaze-directed visual grounding (Qian et al., 2023) and eye-gaze-guided vision transformers (Ma et al., 2023)."
+            },
+            {
+              "sentence_id": "p4_s6",
+              "text": "However, these approaches have limitations in terms of scalability and flexibility."
+            },
+            {
+              "sentence_id": "p4_s7",
+              "text": "Despite these advancements, the integration of gaze information into large VLMs remains an open challenge."
+            },
+            {
+              "sentence_id": "p4_s8",
+              "text": "A key challenge in achieving this alignment lies in the integration of gaze information into VLMs while preserving the pretrained knowledge."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p5",
+          "sentences": [
+            {
+              "sentence_id": "p5_s1",
+              "text": "To tackle this issue, we demonstrate that mouse trace data can be a proxy for gaze behavior modeling and leverage trace data from Localized Narratives (Pont-Tuset et al., 2020) to annotate instructional data using GPT-4 (OpenAI, 2023)."
+            },
+            {
+              "sentence_id": "p5_s2",
+              "text": "We further design Voila-A's attention mechanism to incorporate gaze information while not forgetting pretrained knowledge."
+            },
+            {
+              "sentence_id": "p5_s3",
+              "text": "We evaluate Voila-A through a hold-out validation set and a newly collected test set of 100 samples, featuring real-life scenarios with a gaze-tracking device."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p6",
+          "sentences": [
+            {
+              "sentence_id": "p6_s1",
+              "text": "In this paper, we make the following contributions:"
+            },
+            {
+              "sentence_id": "p6_s2",
+              "text": "We propose Voila-A, a novel approach for aligning VLMs with a user's gaze attention, and design innovative mechanisms to integrate gaze information into VLMs while preserving pretrained knowledge."
+            },
+            {
+              "sentence_id": "p6_s3",
+              "text": "We leverage trace data from Localized Narratives to annotate instructional data using GPT-4, generating the VOILA-COCO dataset with ~72k QA pairs, and demonstrate the scalability of this method."
+            },
+            {
+              "sentence_id": "p6_s4",
+              "text": "We evaluate Voila-A through a hold-out validation set and a newly collected VOILA-GAZE testset of 100 real gaze samples, demonstrating that our approach significantly outperforms several baselines, including Otter (Li et al., 2023a) and Kosmos-2 (Peng et al., 2023)."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p7",
+          "sentences": [
+            {
+              "sentence_id": "p7_s1",
+              "text": "Voila-A represents a significant step forward in the development of more intuitive and user-centric VLMs."
+            },
+            {
+              "sentence_id": "p7_s2",
+              "text": "By aligning model attention with human gaze patterns and leveraging state-of-the-art techniques, we pave the way for more effective and engaging human-AI interaction in a wide range of applications."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "s3",
+      "title": "2  Bridging the Gap in Daily Life Usage of Current VLMs through Gaze Integration",
+      "paragraphs": [
+        {
+          "paragraph_id": "p8",
+          "sentences": [
+            {
+              "sentence_id": "p8_s1",
+              "text": "Although Vision-Language Models (VLMs) exhibit strong performance in various tasks, their applicability in everyday scenarios is hindered by their limited alignment with human users' focus."
+            },
+            {
+              "sentence_id": "p8_s2",
+              "text": "This misalignment leads to suboptimal performance and decreased user satisfaction."
+            },
+            {
+              "sentence_id": "p8_s3",
+              "text": "Current VLMs' inability to process these intentional modalities results in imprecise and unhelpful responses, as demonstrated in Figure 1."
+            },
+            {
+              "sentence_id": "p8_s4",
+              "text": "As shown in Figure 7, a user's intent can be communicated through spoken language, multimodal expressions, or even be concealed."
+            },
+            {
+              "sentence_id": "p8_s5",
+              "text": "Gaze direction data can clarify vague expressions, while uncovering hidden intentions is more challenging."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p9",
+          "sentences": [
+            {
+              "sentence_id": "p9_s1",
+              "text": "Zhang et al. (2020) provides an overview of gaze-related research, outlining a process that begins with collecting human gaze data (further discussed in G.3), followed by building models to predict human attention distribution (i.e., saliency models, as discussed in G.4), and culminating in human-gaze-assisted AI."
+            },
+            {
+              "sentence_id": "p9_s2",
+              "text": "They acknowledge that AI agents capable of perceiving and understanding human gaze behaviors can better infer user needs and assist in daily tasks."
+            },
+            {
+              "sentence_id": "p9_s3",
+              "text": "However, they also note that research in this final direction is still limited."
+            },
+            {
+              "sentence_id": "p9_s4",
+              "text": "Our work aims to advance this area further."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p10",
+          "sentences": [
+            {
+              "sentence_id": "p10_s1",
+              "text": "Incorporating gaze data into VLMs improves their applicability and effectiveness in everyday scenarios."
+            },
+            {
+              "sentence_id": "p10_s2",
+              "text": "This integration enables VLMs to focus on users' interests, delivering accurate and relevant responses while understanding intent, context, and preferences."
+            },
+            {
+              "sentence_id": "p10_s3",
+              "text": "As spatial computing advances, gaze data becomes essential for dynamic, interactive environments, allowing VLMs to adapt in real-time and offer intuitive, seamless user experiences."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "s4",
+      "title": "3  Leveraging Trace Data as an Alternative Approach to Align VLMs with Gaze Attention",
+      "paragraphs": [
+        {
+          "paragraph_id": "p11",
+          "sentences": [
+            {
+              "sentence_id": "p11_s1",
+              "text": "Obtaining gaze data for training VLMs can be challenging, as it is difficult to annotate and expensive to acquire."
+            },
+            {
+              "sentence_id": "p11_s2",
+              "text": "However, an alternative approach can be employed to align VLMs with user gaze attention: utilizing trace data, such as mouse traces, which we demonstrate to have similarities with gaze data."
+            },
+            {
+              "sentence_id": "p11_s3",
+              "text": "In this section, we discuss the potential of trace data as a proxy for gaze data and propose a method for transforming trace data to make it more gaze-like, ultimately enabling the effective use of trace data for aligning VLMs with user gaze attention."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p12",
+          "sentences": [
+            {
+              "sentence_id": "p12_s1",
+              "text": "Localized Narratives (Pont-Tuset et al., 2020), a prior work, have annotated 849,000 images with mouse traces that are aligned with each word of the descriptions."
+            },
+            {
+              "sentence_id": "p12_s2",
+              "text": "The project involved 156 professional annotators who worked full-time, with annotator managers ensuring high-quality annotations through manual inspections and an automatic quality control mechanism."
+            },
+            {
+              "sentence_id": "p12_s3",
+              "text": "After discarding 23.5% of annotations, the remaining ones demonstrated a semantic accuracy of 98.0% for nouns and verbs."
+            },
+            {
+              "sentence_id": "p12_s4",
+              "text": "The accuracy of mouse traces in relation to object locations was also analyzed, revealing that most trace points were within the correct bounding box."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p13",
+          "sentences": [
+            {
+              "sentence_id": "p13_s1",
+              "text": "By collecting hundreds of minutes of gaze data samples as described in B, we find that gaze and mouse traces exhibit similarities, as users tend to fix their gaze on the target object when asking questions, a behavior also observed with mouse traces."
+            },
+            {
+              "sentence_id": "p13_s2",
+              "text": "However, there are minor differences between the two, specifically in terms of gaze fixation continuity and the presence of noise points outside the target object at the end of a query."
+            },
+            {
+              "sentence_id": "p13_s3",
+              "text": "In the case of mouse traces, points that fell outside the bounding box were attributed to two factors: annotators often circled around objects, causing the traces to be near but not inside the box, and some annotators started moving the mouse before describing the object or vice versa."
+            },
+            {
+              "sentence_id": "p13_s4",
+              "text": "These observations provide valuable insights for properly leveraging trace data into the alignment process and understanding the relationship between gaze attention and language description."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p14",
+          "sentences": [
+            {
+              "sentence_id": "p14_s1",
+              "text": "In order to utilize trace data as a substitute for gaze data, we introduce a method to transform mouse traces, thereby reducing the discrepancies between the two data types and making the trace data more gaze-like."
+            },
+            {
+              "sentence_id": "p14_s2",
+              "text": "We first address the inherent noise in both trace points and gaze points by converting them into 2D heatmaps using Gaussian blur:"
+            },
+            {
+              "sentence_id": "p14_s3",
+              "text": "$$ H(x, y) = \\frac{1}{2\\pi\\sigma^2}\\, e^{-\\frac{x^2+y^2}{2\\sigma^2}} \\qquad (1) $$"
+            },
+            {
+              "sentence_id": "p14_s4",
+              "text": "where $H(x, y)$ represents the heatmap value at position $(x, y)$, and $\\sigma$ is the standard deviation of the Gaussian kernel."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p15",
+          "sentences": [
+            {
+              "sentence_id": "p15_s1",
+              "text": "Since mouse traces are more continuous than gaze fixations, we downsample the trace data to better resemble the distribution of gaze data."
+            },
+            {
+              "sentence_id": "p15_s2",
+              "text": "We investigate the Earth Mover's Distance (EMD) between the mean heatmaps of 1k gaze and trace samples while varying the sampling rate from 1 to 40:"
+            },
+            {
+              "sentence_id": "p15_s3",
+              "text": "$$ \\mathrm{EMD}(P, Q) = \\frac{\\sum_{i=1}^{n} |F_i(P) - F_i(Q)|}{\\sum_{i=1}^{n} F_i(P)} \\qquad (2) $$"
+            },
+            {
+              "sentence_id": "p15_s4",
+              "text": "where $P$ and $Q$ are the distributions of the gaze and trace heatmaps, $F_i$ denotes the cumulative distribution function, and $n$ is the number of bins."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p16",
+          "sentences": [
+            {
+              "sentence_id": "p16_s1",
+              "text": "We observe that the EMD has a local minimum value around a sampling rate of 25 as shown in Figure 2."
+            },
+            {
+              "sentence_id": "p16_s2",
+              "text": "By selecting this optimal sampling rate, we can approximate the trace heatmap as an alternative to the real gaze heatmap from a statistical perspective."
+            },
+            {
+              "sentence_id": "p16_s3",
+              "text": "Consequently, this transformation mitigates the differences in inter-relationships, compactness, and noisiness between the trace and gaze data."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "s5",
+      "title": "4  Method",
+      "paragraphs": [
+        {
+          "paragraph_id": "p17",
+          "section_subtitle": "4.1  Automatic Data Annotation for LN-COCO",
+          "sentences": [
+            {
+              "sentence_id": "p17_s1",
+              "text": "The automatic data annotation process for Voila-A is driven by the motivation to develop a more intuitive and user-centric VLM by aligning model attention with human gaze patterns."
+            },
+            {
+              "sentence_id": "p17_s2",
+              "text": "As shown in Figure 3, this process aims to create an effective and engaging human-AI interaction experience across various applications."
+            },
+            {
+              "sentence_id": "p17_s3",
+              "text": "To achieve this, we have designed an innovative prompting approach that leverages the capabilities of GPT-4 as a visual assistant to annotate trace-aligned instructional data to simulate the user's gaze attention."
+            },
+            {
+              "sentence_id": "p17_s4",
+              "text": "The data annotation process follows design principles to ensure accurate, relevant, and consistent annotations."
+            },
+            {
+              "sentence_id": "p17_s5",
+              "text": "These include: 1) focusing on referable sentences and appropriate tags, 2) using a conversational format with specific and general questions, 3) addressing various visual content aspects with definite answers, 4) incorporating complex questions while avoiding uncertainty, and 5) offering detailed, well-organized explanations."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p18",
+          "sentences": [
+            {
+              "sentence_id": "p18_s1",
+              "text": "As illustrated in Figure 3, the automatic data annotation pipeline comprises three stages."
+            },
+            {
+              "sentence_id": "p18_s2",
+              "text": "Stage 1: Prompt Design Iteration. The first stage focuses on refining the prompt design."
+            },
+            {
+              "sentence_id": "p18_s3",
+              "text": "Let $S = \\{(I_i, N_i, T_i, C_i)\\}_{i=1}^{100}$ be a set of 100 samples from the LN-COCO dataset, where $I_i$ represents the image, $N_i$ the localized narrative, $T_i$ the corresponding trace, and $C_i$ the set of five captions from COCO-caption."
+            },
+            {
+              "sentence_id": "p18_s4",
+              "text": "We initiate the process with a basic system prompt, instructing GPT-4 to generate direct questions $Q^D_{i,j}$ and indirect questions $Q^I_{i,j}$ and corresponding answers $A_{i,j}$ that specifically reference the localized narratives while considering COCO-caption as background information."
+            },
+            {
+              "sentence_id": "p18_s5",
+              "text": "The referring portions are annotated with a unique marker $M$ for trace matching during post-processing."
+            },
+            {
+              "sentence_id": "p18_s6",
+              "text": "We also provide two in-context examples to guide the model in generating helpful, well-formatted, diverse, and visually grounded QA pairs."
+            },
+            {
+              "sentence_id": "p18_s7",
+              "text": "Throughout each iteration $k$, we manually evaluate the quality of the generated grounded QA pairs and adjust the prompt to enhance their helpfulness, formatting, diversity, and visual relevance."
+            },
+            {
+              "sentence_id": "p18_s8",
+              "text": "After $K = 10$ iterations, we find the quality of most pairs to be satisfactory, and subsequently, we freeze the prompt to initiate the pipeline."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p19",
+          "sentences": [
+            {
+              "sentence_id": "p19_s1",
+              "text": "Stage 2: Data Sampling. In the second stage, we sample $N = 25{,}000$ image pairs from the LN-COCO dataset and obtain approximately $M = 75{,}000$ QA pairs."
+            },
+            {
+              "sentence_id": "p19_s2",
+              "text": "Stage 3: Post-processing. The third stage involves post-processing the raw grounded QA pairs."
+            },
+            {
+              "sentence_id": "p19_s3",
+              "text": "This includes further filtering based on a set of keywords $K = \\{\\text{\"prompt\", \"this picture\", \"reference caption\", ...}\\}$."
+            },
+            {
+              "sentence_id": "p19_s4",
+              "text": "We define a filtering function $F_k(Q_{i,j}, A_{i,j}, K)$ that identifies and removes QA pairs containing meta descriptions of the prompt."
+            },
+            {
+              "sentence_id": "p19_s5",
+              "text": "We note that this issue may be further resolved by using GPT-4V, which was not available during our submission date."
+            },
+            {
+              "sentence_id": "p19_s6",
+              "text": "Additionally, we identify cases where answers are unhelpful, such as \"I don't know\" or \"It's hard to tell.\""
+            },
+            {
+              "sentence_id": "p19_s7",
+              "text": "We find that these types of answers have low reward scores, so we further examine all pairs using a reward model (rew, 2023) and filter the dataset by setting a minimum reward threshold $\\tau$."
+            },
+            {
+              "sentence_id": "p19_s8",
+              "text": "We define a filtering function $F_r(Q_{i,j}, A_{i,j}, \\tau)$ that removes QA pairs with reward scores below $\\tau$."
+            },
+            {
+              "sentence_id": "p19_s9",
+              "text": "Finally, we segment each localized narrative into temporally aligned segments with respect to the special marker $M$."
+            },
+            {
+              "sentence_id": "p19_s10",
+              "text": "Each segment comprises a grounded fact, a corresponding trace, a direct and indirect question, and an answer."
+            },
+            {
+              "sentence_id": "p19_s11",
+              "text": "This forms the final VOILA-COCO dataset, denoted as $D = \\{(F_i, T_i, Q^D_{i,j}, Q^I_{i,j}, A_{i,j})\\}$."
+            },
+            {
+              "sentence_id": "p19_s12",
+              "text": "It is worth noting that we did not utilize all localized narratives, leaving room for future exploration."
+            },
+            {
+              "sentence_id": "p19_s13",
+              "text": "We annotate the COCO subset of localized narratives, resulting in the Voila-COCO dataset, with statistics presented in Table 1."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p20",
+          "sentences": [
+            {
+              "sentence_id": "p20_s1",
+              "text": "The finalized prompt can be found in C."
+            },
+            {
+              "sentence_id": "p20_s2",
+              "text": "We also visualize a sample of our annotated data in Figure 11."
+            },
+            {
+              "sentence_id": "p20_s3",
+              "text": "By adhering to these design principles, the automatic data annotation process ensures that the resulting dataset is of high quality and effectively aligns the VLM's attention with that of a human user."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p21",
+          "section_subtitle": "4.2  Voila-Gaze: Real-life Gaze-QA Pairs",
+          "sentences": [
+            {
+              "sentence_id": "p21_s1",
+              "text": "To further demonstrate the effectiveness of our method in aligning VLMs with real-life users' gaze attention, we conduct experiments in two everyday scenarios, encompassing a variety of question types details can be found in Table 5."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p22",
+          "sentences": [
+            {
+              "sentence_id": "p22_s1",
+              "text": "In addition to the recorded gaze trajectory, video, and transcription, each participant is instructed to annotate the key elements of their questions, formulate clear questions based on their interpretations, and choose the best answer from three candidate answers generated by GPT-4 according to their annotations."
+            },
+            {
+              "sentence_id": "p22_s2",
+              "text": "The experiment includes 16 participants (8 per scenario) with an equal gender distribution, aged between 20 and 30 (with a standard deviation of 2.06)."
+            },
+            {
+              "sentence_id": "p22_s3",
+              "text": "Each participant takes approximately 240 minutes to complete the study."
+            },
+            {
+              "sentence_id": "p22_s4",
+              "text": "After applying post-filtering and manual checking, we curate a set of 100 QA pairs as our real-life benchmark, VOILA-GAZE."
+            },
+            {
+              "sentence_id": "p22_s5",
+              "text": "The curation process is conducted by two individuals sequentially, with the second person double-checking the following aspects:"
+            },
+            {
+              "sentence_id": "p22_s6",
+              "text": "1. The question is related and aligned with gaze."
+            },
+            {
+              "sentence_id": "p22_s7",
+              "text": "2. The answer is meaningful and can be considered a proper response to the gaze-directed question."
+            },
+            {
+              "sentence_id": "p22_s8",
+              "text": "3. The question is not related to specific brands, prices, or any other objects beyond general knowledge."
+            },
+            {
+              "sentence_id": "p22_s9",
+              "text": "4. The question type is not biased towards a few simple patterns."
+            },
+            {
+              "sentence_id": "p22_s10",
+              "text": "This two-step process ensures the quality and relevance of the curated data while minimizing potential biases and maintaining a focus on general knowledge."
+            },
+            {
+              "sentence_id": "p22_s11",
+              "text": "Samples of VOILA-GAZE are shown in Figure 9."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p23",
+          "section_subtitle": "4.3  Model Design",
+          "sentences": [
+            {
+              "sentence_id": "p23_s1",
+              "text": "We employ the model architecture from OpenFlamingo, as illustrated on the right side of Figure 4."
+            },
+            {
+              "sentence_id": "p23_s2",
+              "text": "This framework consists of a pre-trained vision encoder, language decoder, and gated cross-attention layers, offering flexibility for multi-image and multi-turn conversational interactions."
+            },
+            {
+              "sentence_id": "p23_s3",
+              "text": "The primary challenge lies in incorporating gaze instructional signals into a pre-trained VLM."
+            },
+            {
+              "sentence_id": "p23_s4",
+              "text": "To tackle this issue, we initially develop several potential solutions, which are discussed in Sec 5.3.2."
+            },
+            {
+              "sentence_id": "p23_s5",
+              "text": "Based on empirical evidence, we ultimately confirm the effectiveness of the Voila Perceiver Resampler solution."
+            },
+            {
+              "sentence_id": "p23_s6",
+              "text": "This approach comprises a series of Voila Perceiver Blocks (depicted on the left side of Figure 4)."
+            },
+            {
+              "sentence_id": "p23_s7",
+              "text": "This innovative attention mechanism leverages gaze information to enhance visual feature perception."
+            },
+            {
+              "sentence_id": "p23_s8",
+              "text": "Our design adheres to the principle that gaze serves as an information aggregator in the attention process without disrupting the original learned distribution."
+            },
+            {
+              "sentence_id": "p23_s9",
+              "text": "The Voila Perceiver Block is defined as follows:"
+            },
+            {
+              "sentence_id": "p23_s10",
+              "text": "$$ \\mathrm{VoilaPerceiverBlock}(x, L, G) = \\mathrm{LN}\\big(L + \\mathrm{FF}(L + \\mathrm{Attn}(x, L, G))\\big) \\qquad (3) $$"
+            },
+            {
+              "sentence_id": "p23_s11",
+              "text": "where $x$ represents the image features, $G$ is the gaze heatmap patch encoded after simple linear layer."
+            },
+            {
+              "sentence_id": "p23_s12",
+              "text": "$L$ denotes the latent features."
+            },
+            {
+              "sentence_id": "p23_s13",
+              "text": "It is introduced from the original Perceiver as a small set of latent units that forms an attention bottleneck through which the inputs must pass."
+            },
+            {
+              "sentence_id": "p23_s14",
+              "text": "The attention mechanism, $\\mathrm{Attn}(x, L, G)$, is computed as follows:"
+            },
+            {
+              "sentence_id": "p23_s15",
+              "text": "$$ \\begin{aligned} Q &= \\mathrm{Linear}(L), \\quad K = \\mathrm{Linear}(x \\oplus L) + \\mathrm{Linear}(G \\oplus P), \\\\ V &= \\mathrm{Linear}(x \\oplus L), \\quad \\mathrm{Attn}(x, L, G) = \\mathrm{Softmax}(QK^\\top)V \\end{aligned} \\qquad (4) $$"
+            },
+            {
+              "sentence_id": "p23_s16",
+              "text": "Here, $\\oplus$ denotes concatenation along the feature dimension, $P$ is zero padding with the same shape as $L$ and $\\mathrm{Linear}(\\cdot)$ represents a linear transformation."
+            },
+            {
+              "sentence_id": "p23_s17",
+              "text": "The feed-forward network, $\\mathrm{FF}(\\cdot)$, is a sequence of layer normalization, linear transformation, GELU activation, and another linear transformation."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p24",
+          "sentences": [
+            {
+              "sentence_id": "p24_s1",
+              "text": "The Voila Perceiver Resampler processes the input image features and gaze information, and then feeding them into series of Voila Perceiver Block:"
+            },
+            {
+              "sentence_id": "p24_s2",
+              "text": "$$ \\mathrm{VoilaPerceiverResampler}(X, G) = \\mathrm{LN}(\\mathrm{Layer}(X, L, G)) \\qquad (5) $$"
+            },
+            {
+              "sentence_id": "p24_s3",
+              "text": "where $X$ denotes the input image features, $G$ represents the gaze information, and $\\mathrm{Layer}(X, L, G)$ is a sequence of Voila Perceiver Blocks."
+            },
+            {
+              "sentence_id": "p24_s4",
+              "text": "To obtain the gaze information $G$, we first divide the gaze heatmap $G'$ into patches."
+            },
+            {
+              "sentence_id": "p24_s5",
+              "text": "Then, we apply a linear transformation followed by layer normalization."
+            },
+            {
+              "sentence_id": "p24_s6",
+              "text": "The process can be represented by the following equation:"
+            },
+            {
+              "sentence_id": "p24_s7",
+              "text": "$$ G = \\mathrm{LN}(\\mathrm{Linear}(G')) \\qquad (6) $$"
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p25",
+          "section_subtitle": "4.4  Training",
+          "sentences": [
+            {
+              "sentence_id": "p25_s1",
+              "text": "Our approach utilizes the OpenFlamingo training paradigm to train the Voila model, building upon the pretrained weights of the Otter model, which incorporates an MPT-7B (Team, 2023) language encoder and a CLIP ViT-L/14 (Radford et al., 2021) vision encoder."
+            },
+            {
+              "sentence_id": "p25_s2",
+              "text": "To avoid overfitting and maximize the benefits of pretrained knowledge, we initially freeze both encoders."
+            },
+            {
+              "sentence_id": "p25_s3",
+              "text": "As shown in Figure 4, we then train only the linear layers directly related to gaze input at the first stage for one epoch before fine-tuning the entire Perceiver resampler module, the cross-attention layers integrated into the language encoder, and the input/output embeddings of the language encoder in second stage for an additional epoch."
+            },
+            {
+              "sentence_id": "p25_s4",
+              "text": "This process results in roughly 1.3 billion trainable parameters for the Otter model."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p26",
+          "sentences": [
+            {
+              "sentence_id": "p26_s1",
+              "text": "During training, we adhere to a specific format for preparing our training data."
+            },
+            {
+              "sentence_id": "p26_s2",
+              "text": "This format combines an image, user instruction, \"GPT\"-generated answers, and a unique token known as the [endofchunk] token."
+            },
+            {
+              "sentence_id": "p26_s3",
+              "text": "We arrange the training data as follows:"
+            },
+            {
+              "sentence_id": "p26_s4",
+              "text": "<context> [image] User:[fixation]<instruction> GPT:[answers] <answer>.[endofchunk]"
+            },
+            {
+              "sentence_id": "p26_s5",
+              "text": "Here, the [image], [answer], [fixation], and [endofchunk] tokens are distinct and serve particular functions."
+            },
+            {
+              "sentence_id": "p26_s6",
+              "text": "We adopt a chatbot-like format to enhance the instruction-following capabilities and conversational generalizability of our model."
+            },
+            {
+              "sentence_id": "p26_s7",
+              "text": "The [image] and [endofchunk] tokens originate from the OpenFlamingo training paradigm, while the [answer] token is a new addition by Otter."
+            },
+            {
+              "sentence_id": "p26_s8",
+              "text": "The [answer] token separates answers from instructions, allowing us to mask all tokens following the [answer] token during training and designate them as the model's prediction objectives."
+            },
+            {
+              "sentence_id": "p26_s9",
+              "text": "We also introduce the [fixation] token to direct the language model to utilize gaze information."
+            },
+            {
+              "sentence_id": "p26_s10",
+              "text": "We train our model using a cross-entropy loss function."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "s6",
+      "title": "5  Experiment",
+      "paragraphs": [
+        {
+          "paragraph_id": "p27",
+          "section_subtitle": "5.1  Evaluation Metrics — GPT-4 Ranking",
+          "sentences": [
+            {
+              "sentence_id": "p27_s1",
+              "text": "We utilize GPT-4 RANKING as our primary automated evaluation metric to assess model performance through a one-to-one comparison."
+            },
+            {
+              "sentence_id": "p27_s2",
+              "text": "The GPT Ranking represents the language model's evaluation of the quality of the generated response."
+            },
+            {
+              "sentence_id": "p27_s3",
+              "text": "This score signifies the extent to which the response aligns with the ground truth image description and answer while demonstrating the model's language proficiency."
+            },
+            {
+              "sentence_id": "p27_s4",
+              "text": "Factors such as grammar, semantics, and fluency are taken into account when comparing the response to that of another model."
+            },
+            {
+              "sentence_id": "p27_s5",
+              "text": "It is important to note that GPT-4 exhibits sequence ordering bias."
+            },
+            {
+              "sentence_id": "p27_s6",
+              "text": "To mitigate this issue, we implement a dual-setting approach that reverses the order of the models, ensuring that the order does not influence the outcome."
+            },
+            {
+              "sentence_id": "p27_s7",
+              "text": "The prompt and evaluation procedure can be found in Figure 12."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p28",
+          "section_subtitle": "Reward Score",
+          "sentences": [
+            {
+              "sentence_id": "p28_s1",
+              "text": "Given that our dataset is automatically annotated using GPT-4, it is crucial to mitigate any potential system bias during model evaluation."
+            },
+            {
+              "sentence_id": "p28_s2",
+              "text": "To this end, we incorporate human preference by utilizing a reward model score as an auxiliary metric."
+            },
+            {
+              "sentence_id": "p28_s3",
+              "text": "The reward model, which assesses the human-like quality of a response, is trained using human feedback to predict the superiority of a generated answer in relation to a given question from a human perspective (rew, 2023)."
+            },
+            {
+              "sentence_id": "p28_s4",
+              "text": "This approach allows us to achieve a more balanced and robust evaluation process, ensuring that our model's performance aligns with human expectations and preferences."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p29",
+          "section_subtitle": "5.2  Main Results — 5.2.1  Voila Exhibits a Balanced Capability between Helpfulness and Fact Grounding",
+          "sentences": [
+            {
+              "sentence_id": "p29_s1",
+              "text": "In Figure 5, we observe a notable superiority of VOILA over both Otter and Kosmos-2 on the VOILA-COCO-TESTSET."
+            },
+            {
+              "sentence_id": "p29_s2",
+              "text": "Regarding the grounding capability, both VOILA and Kosmos-2 trained with fine-grained grounded facts outperform Otter model in a large extent."
+            },
+            {
+              "sentence_id": "p29_s3",
+              "text": "Besides, VOILA surpasses Kosmos-2 marginally."
+            },
+            {
+              "sentence_id": "p29_s4",
+              "text": "With respect to helpful capability, Otter delivers significantly more helpful responses than Kosmos-2."
+            },
+            {
+              "sentence_id": "p29_s5",
+              "text": "Since Otter is trained on top of Openflamingo with instruction-following dataset, it can provide more helpful response especially for informative queries while Kosmos-2 tends to answer visual observation from the input image."
+            },
+            {
+              "sentence_id": "p29_s6",
+              "text": "In addition, VOILA trained on gaze dataset demonstrates stronger helpful capabilities over all models."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p30",
+          "sentences": [
+            {
+              "sentence_id": "p30_s1",
+              "text": "In real gaze scenarios, as illustrated in Figure 6, VOILA outperforms the two baseline models as well."
+            },
+            {
+              "sentence_id": "p30_s2",
+              "text": "These scenarios differ substantially from the collected COCO images and present more challenging questions, necessitating a higher degree of accurate intent understanding and reasoning."
+            },
+            {
+              "sentence_id": "p30_s3",
+              "text": "Especially from the comparison of Otter vs Kosmos-2, we found that there are much more Tie results due to the hardness of the real cases."
+            },
+            {
+              "sentence_id": "p30_s4",
+              "text": "Despite these increased demands, VOILA continues to surpass both models, further showcasing its balanced proficiency in both helpfulness and fact grounding."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p31",
+          "section_subtitle": "5.3  Ablation Studies — 5.3.1  Query Types Has a Significant Impact on Response Quality",
+          "sentences": [
+            {
+              "sentence_id": "p31_s1",
+              "text": "Table 2 investigates the varying performance of different question types, specifically direct and implicit/coreference queries."
+            },
+            {
+              "sentence_id": "p31_s2",
+              "text": "As the base model Openflamingo was pretrained on direct queries, both Otter and VOILA perform better in this category as expected."
+            },
+            {
+              "sentence_id": "p31_s3",
+              "text": "In addition, it is nature for human to communicate with correfernce queries."
+            },
+            {
+              "sentence_id": "p31_s4",
+              "text": "VOILA maintains strong performance when handling coreference queries with the gaze as a guidance while the Otter model decreases a lot."
+            },
+            {
+              "sentence_id": "p31_s5",
+              "text": "Furthermore, we append in-context QA pairs prior to the current query and observe that the examples further improves the quality of the responses."
+            },
+            {
+              "sentence_id": "p31_s6",
+              "text": "In real-life situations, multi-turn conversations are involved in most interactions with many coreference queries."
+            },
+            {
+              "sentence_id": "p31_s7",
+              "text": "The design of in-context prompt can assist VOILA to demonstrate a superior ability."
+            },
+            {
+              "sentence_id": "p31_s8",
+              "text": "This improvement is evident across both direct and coreference query types."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p32",
+          "section_subtitle": "5.3.2  Heatmap is a Better Way to Incorporate Gaze",
+          "sentences": [
+            {
+              "sentence_id": "p32_s1",
+              "text": "To establish the effectiveness of our approach, we implemented several alternative methods for incorporating gaze data into VLMs."
+            },
+            {
+              "sentence_id": "p32_s2",
+              "text": "These methods include: converting gaze sequences into discrete position tokens for LLMs, using the bounding box position of trace trajectories as additional patch tokens concatenated to VIT image feature token lists, and converting the bounding box coordinates into discrete tokens."
+            },
+            {
+              "sentence_id": "p32_s3",
+              "text": "We provide an illustration of those method in Figure 13."
+            },
+            {
+              "sentence_id": "p32_s4",
+              "text": "However, all these methods failed to outperform the gaze heatmap approach, as shown in Table 3."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p33",
+          "section_subtitle": "5.3.3  Gradual Unfreezing of Parameters Yields Better Results",
+          "sentences": [
+            {
+              "sentence_id": "p33_s1",
+              "text": "Table 4 presents empirical findings that demonstrate the effectiveness of gradually unfreezing model parameters."
+            },
+            {
+              "sentence_id": "p33_s2",
+              "text": "Instead of directly unfreezing the vision perceiver and cross-attention layers, or using LORA to fine-tune the entire model, we first fine-tune the gaze-related weights and then fine-tune the other parts of the perceiver and cross-attention layers, which yields better results."
+            },
+            {
+              "sentence_id": "p33_s3",
+              "text": "We hypothesize that this improvement is due to the newly added gaze component needing to adapt to the distribution of the pretrained layers first."
+            },
+            {
+              "sentence_id": "p33_s4",
+              "text": "This adaptation process can further help mitigate the issue of catastrophic forgetting."
+            }
+          ]
+        },
+        {
+          "paragraph_id": "p34",
+          "section_subtitle": "5.4  Qualitative Studies",
+          "sentences": [
+            {
+              "sentence_id": "p34_s1",
+              "text": "We conduct qualitative studies on randomly selected cases and demonstrate the results of several representative examples in Appendix Figure 8."
+            },
+            {
+              "sentence_id": "p34_s2",
+              "text": "According to the analysis, the conclusions can be summarized as: 1) Existing models are able to generate reasonable results for explicit queries."
+            },
+            {
+              "sentence_id": "p34_s3",
+              "text": "In the 1st row, the object cakes and the attributes color are explicitly mentioned in the query, and the three models are able to answer (partially) correctly;"
+            },
+            {
+              "sentence_id": "p34_s4",
+              "text": "2) Regarding to coreference queries, the model Otter is hard to understand the pronouns like it without spatial guidance as shown in the 2nd row."
+            },
+            {
+              "sentence_id": "p34_s5",
+              "text": "This requires further context or generates the answer based on the salient object like plane instead of the actual human attention;"
+            },
+            {
+              "sentence_id": "p34_s6",
+              "text": "3) The Kosmos-2 model can take the bounding box for grounding as spatial guidance, it is sometimes not accurate compared to the heatmap used in VOILA."
+            },
+            {
+              "sentence_id": "p34_s7",
+              "text": "As shown in the 3rd row, the bounding box is too coarse and made the model focus on the object plane instead of the actual human attention sky;"
+            },
+            {
+              "sentence_id": "p34_s8",
+              "text": "4) Besides, we found that Kosmos-2 tends to describe the detailed visual content and sometimes lacks the instruction-following capability;"
+            },
+            {
+              "sentence_id": "p34_s9",
+              "text": "In the 4th row, the Kosmos-2 responses Keyboard depicated in the bounding box ignoring the actual query intention;"
+            },
+            {
+              "sentence_id": "p34_s10",
+              "text": "Finally, 5) There are still further challenges for all models to deal with."
+            },
+            {
+              "sentence_id": "p34_s11",
+              "text": "For instance, counting for objects requires intensive fine-grained recognition of the visual content demonstrated in the last row."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "s7",
+      "title": "6  Conclusion",
+      "paragraphs": [
+        {
+          "paragraph_id": "p35",
+          "sentences": [
+            {
+              "sentence_id": "p35_s1",
+              "text": "In this study, we presented Voila-A, a cutting-edge approach that aligns Vision-Language Models with user gaze attention, thereby improving efficacy in practical applications."
+            },
+            {
+              "sentence_id": "p35_s2",
+              "text": "Voila-A can be implemented in HMD AR/VR devices as an egoview copilot, benefiting a wide range of users, including visually impaired individuals who rely on their gaze to communicate their intent."
+            },
+            {
+              "sentence_id": "p35_s3",
+              "text": "This method surpasses the capabilities of similar mobile apps that necessitate users to lift their phones for scene capture."
+            },
+            {
+              "sentence_id": "p35_s4",
+              "text": "Despite its promising potential, there are limitations and future directions to consider."
+            },
+            {
+              "sentence_id": "p35_s5",
+              "text": "These include enhancing inference efficiency for real-time responses, integrating voice modalities for seamless interaction, and supporting higher resolutions for OCR and screen or UI understanding."
+            },
+            {
+              "sentence_id": "p35_s6",
+              "text": "We successfully utilized trace data to create the VOILA-COCO dataset, showcasing Voila-A's superior performance two benchmarks."
+            },
+            {
+              "sentence_id": "p35_s7",
+              "text": "Our research lays the foundation for more engaging human-AI interactions and encourages further exploration of Voila-A's integration with various modalities and tasks in the realm of multimodal AI systems."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "s8",
+      "title": "7  Reproducibility Statement",
+      "paragraphs": [
+        {
+          "paragraph_id": "p36",
+          "sentences": [
+            {
+              "sentence_id": "p36_s1",
+              "text": "In the interest of promoting transparency and facilitating further research within the community, we are committed to providing comprehensive resources alongside the publication of our work."
+            },
+            {
+              "sentence_id": "p36_s2",
+              "text": "To this end, we will release the VOILA-COCO and VOILA-GAZE datasets, as well as the annotation pipeline, training code, and model weights."
+            },
+            {
+              "sentence_id": "p36_s3",
+              "text": "By making these materials publicly available, we aim to ensure that our methods can be easily replicated and built upon by other researchers."
+            },
+            {
+              "sentence_id": "p36_s4",
+              "text": "Our commitment to reproducibility aligns with the broader scientific goal of fostering collaboration and the development of novel ideas and techniques in the field."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
