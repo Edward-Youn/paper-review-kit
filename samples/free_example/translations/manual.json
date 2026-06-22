@@ -173,7 +173,7 @@
     {
       "sentence_id": "p7_s4",
       "original": "By attaching EEs, our method reduces the chances of mid-crisis or overthinking and makes the inference process faster. Fig. 1 shows how our method can speed up inference while maintaining comparable performance by using the EE methods.",
-      "translation": "EE 부착으로 우리 방법은 mid-crisis와 overthinking의 가능성을 동시에 줄이고 추론을 더 빠르게 한다."
+      "translation": "EE를 부착함으로써 우리 방법은 mid-crisis나 overthinking의 가능성을 줄이고 추론 과정을 더 빠르게 한다. Figure 1은 우리 방법이 EE 기법을 사용해 비슷한 성능을 유지하면서 추론을 어떻게 가속하는지 보여준다."
     },
     {
       "sentence_id": "p8_s1",
@@ -343,7 +343,7 @@
     {
       "sentence_id": "p15_s1",
       "original": "The key differences in our work are: 1) We employ adversarial training for efficient learning of EE models. 2) Our method can work under both supervised and unsupervised setups by utilizing the zero-shot capabilities of the VLMs, while previous methods require a good amount of high-quality labeled training data.",
-      "translation": "우리 작업의 핵심 차이는 다음과 같다: 1) EE 모델의 효율적 학습을 위해 adversarial 학습을 활용한다."
+      "translation": "우리 작업의 핵심 차이는 다음과 같다: 1) EE 모델의 효율적 학습을 위해 adversarial training을 활용한다. 2) 우리 방법은 VLM의 zero-shot 능력을 활용해 supervised·unsupervised 설정 모두에서 동작하는 반면, 기존 방법들은 상당량의 고품질 레이블 학습 데이터를 필요로 한다."
     },
     {
       "sentence_id": "p16_s1",
@@ -593,7 +593,7 @@
     {
       "sentence_id": "p25_s2",
       "original": "The knowledge distillation loss for the i-th layer could be formulated as L_KL_i = KL(p_i_t, p_N_t), where p_i_t = C_N(E_i(h_i_t | y*_1:t-1, I)), p_N_t = C_N(h_N_t | y*_1:t-1, I) and KL is the KL-divergence loss defined as KL(p_i_t, p_N_t) = Σ_v∈V p_i_t log(p_i_t / p_N_t) where V is the vocabulary.",
-      "translation": "i번째 레이어의 KD 손실은 <em>L^KL_i = KL(p^i_t, p^N_t)</em>로 정식화된다."
+      "translation": "i번째 레이어의 KD 손실은 <em>L^KL_i = KL(p^i_t, p^N_t)</em>로 정식화된다. 여기서 p^i_t = C_N(E_i(h^i_t | y*_1:t-1, I)), p^N_t = C_N(h^N_t | y*_1:t-1, I)이고, KL은 KL-divergence 손실로 KL(p^i_t, p^N_t) = Σ_{v∈V} p^i_t log(p^i_t / p^N_t)로 정의되며 V는 vocabulary다."
     },
     {
       "sentence_id": "p25_s3",
@@ -613,7 +613,7 @@
     {
       "sentence_id": "p25_s6",
       "original": "However, this method has a slightly lower performance than the CapFilt method proposed next, still, it comes with lower computational cost and has comparable performance to vanilla VLM inference.",
-      "translation": "이 방법도 VLM의 zero-shot 능력을 활용한다."
+      "translation": "다만 이 방법은 다음에 제안하는 CapFilt 방법보다는 성능이 약간 낮지만, 그래도 연산 비용이 더 적고 vanilla VLM 추론과 비슷한 성능을 보인다."
     },
     {
       "sentence_id": "p26_s1",
@@ -703,7 +703,7 @@
     {
       "sentence_id": "p29_s1",
       "original": "The speedup is formulated as Speedup = Total parameters / Average number of parameters used, where the average number of parameters could be written as (1/M) Σ_I=1^M Σ_i=1^N_I w_i × (i + k) × p, where p denotes the number of parameters in one layer of the LM component, N_I denotes the number of predicted words in the caption for the image I, M denotes the total number of input images and k = 1 is the number of LM layers in the exit.",
-      "translation": "Speedup은 <em>Speedup = Total parameters / Average number of parameters used</em>로 정식화된다."
+      "translation": "Speedup은 <em>Speedup = Total parameters / Average number of parameters used</em>로 정식화되며, 평균 파라미터 수는 (1/M) Σ_{I=1}^{M} Σ_{i=1}^{N_I} w_i × (i + k) × p로 쓸 수 있다. 여기서 p는 LM 컴포넌트 한 레이어의 파라미터 수, N_I는 이미지 I의 캡션에서 예측된 단어 수, M은 입력 이미지 총 수, k = 1은 exit의 LM 레이어 수다."
     },
     {
       "sentence_id": "p29_s2",
