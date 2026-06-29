@@ -172,6 +172,35 @@ tab_reading = "\n".join(render_section(s) for s in struct["sections"])
 # ----------------------------------------------------------------
 # Tab 2 — Dissection 7+1
 # ----------------------------------------------------------------
+def _overview_svg(stages):
+    """Deterministic 5-panel overview SVG fallback (PROBLEM->...->RESULTS), v3 tokens.
+    Used when no codex `dissection_overview.png` is committed — keeps the summary-card
+    overview present and identical across web/CLI. `stages` = list of [label, text]."""
+    import textwrap
+    Wd, Hd, pad, gap = 1536, 470, 30, 46
+    n = max(1, len(stages))
+    pw = (Wd - 2 * pad - (n - 1) * gap) / n
+    accent = ["#8b75c0", "#6b95b3"]
+    soft = ["#e4d9ff", "#d9ebff"]
+    out = [f'<svg viewBox="0 0 {Wd} {Hd}" role="img" aria-label="논문 한 장 정리">',
+           f'<rect width="{Wd}" height="{Hd}" fill="#ffffff"/>']
+    x = pad
+    for i, st in enumerate(stages):
+        lab, txt = (st[0], st[1]) if isinstance(st, (list, tuple)) else (st.get("label", ""), st.get("text", ""))
+        c1 = accent[i % 2]
+        out.append(f'<rect x="{x:.0f}" y="70" width="{pw:.0f}" height="{Hd-150}" rx="16" fill="{soft[i % 2]}" stroke="{c1}"/>')
+        out.append(f'<rect x="{x:.0f}" y="70" width="{pw:.0f}" height="10" rx="5" fill="{c1}"/>')
+        out.append(f'<text x="{x+pw/2:.0f}" y="118" text-anchor="middle" font-family="Georgia,serif" font-size="22" font-weight="700" fill="{c1}">{esc(lab)}</text>')
+        for j, ln in enumerate(textwrap.wrap(txt, width=20)[:6]):
+            out.append(f'<text x="{x+pw/2:.0f}" y="{162+j*26}" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#1f1d24">{esc(ln)}</text>')
+        if i < n - 1:
+            ax = x + pw + gap / 2
+            out.append(f'<path d="M{ax-12:.0f} {Hd/2:.0f} L{ax+12:.0f} {Hd/2:.0f}" stroke="#7a7484" stroke-width="3" marker-end="url(#ovah)"/>')
+        x += pw + gap
+    out.append('<defs><marker id="ovah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7a7484"/></marker></defs></svg>')
+    return "".join(out)
+
+
 def render_diss_card(c):
     rows = "".join(
         f'<div class="diss-row"><dt class="diss-tag">{esc(r["tag"])}</dt>'
@@ -179,13 +208,21 @@ def render_diss_card(c):
         for r in c["rows"]
     )
     overview_html = ""
-    if c.get("cls") == "diss-summary" and "dissection_overview" in GEN_DATAURI:
-        overview_html = (
-            '<figure class="diss-overview-figure">'
-            f'<img src="{GEN_DATAURI["dissection_overview"]}" alt="FREE 한 장 정리" />'
-            '<figcaption>PROBLEM &rarr; KEY OBSERVATIONS &rarr; METHOD &rarr; WHAT&rsquo;S NEW &rarr; RESULTS &mdash; 5단 가로 흐름으로 본 FREE. 본문 9-row와 동일 내용의 시각 요약.</figcaption>'
-            '</figure>'
-        )
+    if c.get("cls") == "diss-summary":
+        cap = ('PROBLEM &rarr; OBSERVATION &rarr; METHOD &rarr; WHAT&rsquo;S NEW &rarr; RESULTS'
+               ' &mdash; 5단 가로 흐름 요약. 본문 9-row와 동일 내용의 시각 요약.')
+        if "dissection_overview" in GEN_DATAURI:          # mode A: committed codex PNG
+            overview_html = (
+                '<figure class="diss-overview-figure">'
+                f'<img src="{GEN_DATAURI["dissection_overview"]}" alt="논문 한 장 정리" />'
+                f'<figcaption>{cap}</figcaption></figure>'
+            )
+        elif c.get("overview"):                            # mode B: deterministic SVG fallback
+            overview_html = (
+                '<figure class="diss-overview-figure">'
+                f'{_overview_svg(c["overview"])}'
+                f'<figcaption>{cap} (codex 미사용 — 빌더 생성 SVG)</figcaption></figure>'
+            )
     return (
         f'<article class="diss-card {c["cls"]}">'
         f'<div class="diss-step">{c["id"]:02d}</div>'
@@ -454,6 +491,7 @@ details.beginner-note .beginner-body{{margin-top:10px;font-size:13.5px;line-heig
 .diss-card.diss-summary{{border-left-color:#3d2a5e;grid-column:1/-1;background:linear-gradient(180deg,#ffffff,#f5edff)}}
 .diss-overview-figure{{margin:18px 0 22px;padding:14px;background:#ffffff;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 18px rgba(80,60,140,0.06)}}
 .diss-overview-figure img{{display:block;width:100%;height:auto;border-radius:10px;cursor:zoom-in}}
+.diss-overview-figure svg{{display:block;width:100%;height:auto;border-radius:10px;background:#fff}}
 .diss-overview-figure figcaption{{margin-top:10px;font-size:13.5px;color:var(--muted);line-height:1.55;font-style:italic}}
 .diss-step{{position:absolute;top:22px;left:22px;width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent);font-family:Georgia,serif;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center}}
 .diss-card.diss-observe .diss-step{{background:var(--mint-soft);color:var(--mint)}}
@@ -901,9 +939,9 @@ BODY = f'''<body>
 </html>
 '''
 
-OUT_HTML = ROOT / "FREE_output.html"
+OUT_HTML = ROOT / "FREE.html"
 OUT_HTML.write_text(HEAD + BODY, encoding="utf-8")
 size_mb = OUT_HTML.stat().st_size / (1024*1024)
-print(f"=== FREE_output.html built: {size_mb:.2f} MB ===")
+print(f"=== FREE.html built: {size_mb:.2f} MB ===")
 print(f"  asset images embedded: {len(ASSET_DATAURI)}")
 print(f"  generated images embedded: {len(GEN_DATAURI)}")
